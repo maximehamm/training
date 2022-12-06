@@ -4,13 +4,11 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.core.LoggerContext
 import org.apache.logging.log4j.core.config.ConfigurationSource
 import org.apache.logging.log4j.core.config.Configurator
-import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 
 abstract class AbstractTestLog4J {
 
     companion object {
-        private var customAppender: StreamAppender? = null
         private var context: LoggerContext? = null
     }
 
@@ -22,27 +20,17 @@ abstract class AbstractTestLog4J {
 
         context = Configurator.initialize(null,
             ConfigurationSource(config.byteInputStream(Charsets.UTF_8)))
-
-        val appender = context!!.configuration.rootLogger.appenders[StreamAppender.NAME]
-        if (appender == null) {
-            customAppender = StreamAppender()
-            context!!.configuration.addAppender(customAppender!!.appender)
-            context!!.configuration.rootLogger.addAppender(customAppender!!.appender, null, null)
-        }
-        else {
-            customAppender!!.reset()
-        }
     }
 
-    protected fun assertLogs(vararg logs: String) {
+    protected fun assertLogs(appender: String,
+        vararg logs: String) {
+
+        val testAppender = context!!.configuration.appenders[appender] as TestAppender
+
         assertEquals(
             logs.asList().joinToString("\n"),
-            customAppender!!.dump().trim())
-    }
-
-    protected fun assertLogs(vararg logs: Log) {
-        assertContentEquals(
-            logs.asList(),
-            customAppender!!.dumpLogs())
+            testAppender.events
+                .map { "[${it.level}] [${it.logger}] ${it.message}"}
+                .joinToString("\n"))
     }
 }
