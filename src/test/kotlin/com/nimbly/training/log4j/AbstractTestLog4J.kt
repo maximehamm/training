@@ -5,11 +5,14 @@ import org.apache.logging.log4j.core.LoggerContext
 import org.apache.logging.log4j.core.config.ConfigurationSource
 import org.apache.logging.log4j.core.config.Configurator
 import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
 
 abstract class AbstractTestLog4J {
 
-    private lateinit var customAppender: StreamAppender
-    private var context: LoggerContext? = null
+    companion object {
+        private var customAppender: StreamAppender? = null
+        private var context: LoggerContext? = null
+    }
 
     protected fun initLog4J(config: String) {
 
@@ -23,17 +26,23 @@ abstract class AbstractTestLog4J {
         val appender = context!!.configuration.rootLogger.appenders[StreamAppender.NAME]
         if (appender == null) {
             customAppender = StreamAppender()
-            context!!.configuration.addAppender(customAppender.appender)
-            context!!.configuration.rootLogger.addAppender(customAppender.appender, null, null)
+            context!!.configuration.addAppender(customAppender!!.appender)
+            context!!.configuration.rootLogger.addAppender(customAppender!!.appender, null, null)
         }
         else {
-            customAppender.reset()
+            customAppender!!.reset()
         }
+    }
+
+    protected fun assertLogs(vararg logs: String) {
+        assertEquals(
+            logs.asList().joinToString("\n"),
+            customAppender!!.dump().trim())
     }
 
     protected fun assertLogs(vararg logs: Log) {
         assertContentEquals(
             logs.asList(),
-            customAppender.dumpLogs())
+            customAppender!!.dumpLogs())
     }
 }
