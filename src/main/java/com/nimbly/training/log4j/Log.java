@@ -6,12 +6,18 @@ import java.util.Objects;
 
 public class Log {
 
+    private final String logger;
     private final Level level;
     private final String message;
 
-    public Log(Level level, String message) {
+    public Log(Level level, String logger, String message) {
+        this.logger = logger;
         this.level = level;
         this.message = message;
+    }
+
+    public String getLogger() {
+        return logger;
     }
 
     public Level getLevel() {
@@ -33,11 +39,12 @@ public class Log {
         if (!(o instanceof Log)) return false;
         Log log = (Log) o;
         return Objects.equals(level, log.level)
+            && Objects.equals(logger, log.logger)
             && Objects.equals(message, log.message);
     }
 
     @Override
     public String toString() {
-        return "[" + level + "] " + message;
+        return "[" + level + "] [" + logger + "] " + message;
     }
 }

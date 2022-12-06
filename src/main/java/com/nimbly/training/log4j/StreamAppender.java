@@ -14,16 +14,18 @@ import java.util.regex.Pattern;
 
 public class StreamAppender {
 
+    public static final String NAME = "Test-stream";
+
     private final ByteArrayOutputStream stream;
     private final OutputStreamAppender appender;
 
     public StreamAppender() {
         this.stream = new ByteArrayOutputStream();
         final PatternLayout layout = PatternLayout.createLayout(
-                "[%level] %message%n",
+                "[%level] [%c] %message%n",
                 null, null, null, Charset.defaultCharset(), true, false, "", "");
         this.appender = OutputStreamAppender.createAppender(
-                layout, null, stream, "Test-stream", true, true);
+                layout, null, stream, NAME, true, true);
         this.appender.start();
     }
 
@@ -37,13 +39,18 @@ public class StreamAppender {
 
     public List<Log> dumpLogs() {
         List<Log> out = new ArrayList<>();
-        Pattern pattern = Pattern.compile("\\[(\\w*)\\] (.*)");
+        Pattern pattern = Pattern.compile("\\[(\\w*)\\] \\[(\\w|.*)\\] (.*)");
         Matcher matcher = pattern.matcher(dump());
         while (matcher.find()) {
             Level level = Level.getLevel(matcher.group(1));
-            String message = matcher.group(2);
-            out.add(new Log(level, message));
+            String logger = matcher.group(2);
+            String message = matcher.group(3);
+            out.add(new Log(level, logger, message));
         }
         return out;
+    }
+
+    public void reset() {
+        this.stream.reset();
     }
 }

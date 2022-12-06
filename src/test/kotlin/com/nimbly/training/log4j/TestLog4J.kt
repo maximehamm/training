@@ -1,24 +1,15 @@
 package com.nimbly.training.log4j
 
-import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.Level.*
 import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
-import org.apache.logging.log4j.core.config.ConfigurationSource
-import org.apache.logging.log4j.core.config.Configurator
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import kotlin.test.assertContentEquals
 
-
-class TestLog4J {
-
-    private lateinit var customAppender: StreamAppender
+class TestLog4J: AbstractTestLog4J() {
 
     @Test
-    fun testLoadConfig() {
+    fun testSimple1() {
 
-        initLog4J("""
+        val config = """
                 <Configuration name="ConfigTest">
                     <Appenders>
                         <Console name="Console" target="Console">
@@ -26,41 +17,40 @@ class TestLog4J {
                         </Console>
                     </Appenders>
                     <Loggers>
-                        <Root level="error" additivity="true">
+                        <Root level="#ROOT_LEVEL#" additivity="true">
                              <AppenderRef ref="Console" /> 
                         </Root>
                     </Loggers>
                 </Configuration>
             """.trimIndent()
-        )
 
-        val logger: Logger = LogManager.getLogger("com.nimbly.test.Training")
+        //
+        // LEVEL IS WARN
+        //
+        initLog4J(config.replace("#ROOT_LEVEL#", "warn"))
+        var logger = LogManager.getLogger("com.nimbly.test.Training")
 
-        logger.log(DEBUG, "Test debug")
-        logger.log(INFO, "Test info")
-        logger.log(WARN, "Test warning")
-        logger.log(ERROR, "Test error")
+        logger.log(DEBUG, "Test debug 1")
+        logger.log(INFO, "Test info 1")
+        logger.log(WARN, "Test warning 1")
+        logger.log(ERROR, "Test error 1")
+        assertLogs(
+            Log(WARN, "com.nimbly.test.Training", "Test warning 1"),
+            Log(ERROR, "com.nimbly.test.Training", "Test error 1"))
 
-        assertLogs(Log(ERROR, "Test error"))
-    }
+        //
+        // LEVEL IS INFO
+        //
+        initLog4J(config.replace("#ROOT_LEVEL#", "info"))
+        logger = LogManager.getLogger("com.nimbly.test.Training")
 
-    @BeforeEach
-    fun initTestAppender() {
-        customAppender = StreamAppender()
-    }
-
-    private fun initLog4J(config: String) {
-
-        val source = ConfigurationSource(config.byteInputStream(Charsets.UTF_8))
-        val context = Configurator.initialize(null, source)
-
-        context.configuration.addAppender(customAppender.appender)
-        context.configuration.rootLogger.addAppender(customAppender.appender, Level.INFO, null)
-    }
-
-    private fun assertLogs(vararg logs: Log) {
-        assertContentEquals(
-            logs.asList(),
-            customAppender.dumpLogs())
+        logger.log(DEBUG, "Test debug 2")
+        logger.log(INFO, "Test info 2")
+        logger.log(WARN, "Test warning 2")
+        logger.log(ERROR, "Test error 2")
+        assertLogs(
+            Log(INFO, "com.nimbly.test.Training", "Test info 2"),
+            Log(WARN, "com.nimbly.test.Training", "Test warning 2"),
+            Log(ERROR, "com.nimbly.test.Training", "Test error 2"))
     }
 }
