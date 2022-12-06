@@ -9,6 +9,7 @@ class TestLog4J: AbstractTestLog4J() {
     @Test
     fun testSimple1() {
 
+        //language=XML
         val config = """
                 <Configuration name="ConfigTest">
                     <Appenders>
@@ -104,6 +105,7 @@ class TestLog4J: AbstractTestLog4J() {
     @Test
     fun testMultiAppender1() {
 
+        //language=XML
         val config = """
             <Configuration name="ConfigTest">
                 <Appenders>
