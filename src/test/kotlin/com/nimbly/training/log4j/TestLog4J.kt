@@ -160,7 +160,7 @@ class TestLog4J: AbstractTestLog4J() {
     }
 
     @Test
-    fun test4BusinessLogger() {
+    fun test4AndBusinessLogger() {
 
         //language=XML
         val config = """
@@ -229,4 +229,91 @@ class TestLog4J: AbstractTestLog4J() {
             "[INFO] [com.nimbly.business.BusinessRecorder] A business debug information")
     }
 
+    @Test
+    fun test5AndSqlLogger() {
+
+        //language=XML
+        val config = """
+            <Configuration name="ConfigTest">
+                <Appenders>
+                
+                    <Console name="Console" target="Console">
+                        <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" />
+                    </Console>
+                    
+                    <TestAppender name="AppenderErrors">
+                        <LevelRangeFilter minLevel="ERROR" maxLevel="ERROR"/>
+                    </TestAppender>
+                    
+                    <TestAppender name="AppenderDebug"/>
+                    
+                    <TestAppender name="AppenderDebugWithSQL"/>
+                   
+                    <TestAppender name="AppenderBusiness"/>
+                    
+                </Appenders>
+                
+                <Loggers>
+                
+                    <Logger name="com.nimbly.test" level="debug"/>
+                    
+                    <Logger name="org.hibernate.SQL" level="debug" additivity="false">
+                        <AppenderRef ref="AppenderDebugWithSQL" /> 
+                    </Logger>
+                    
+                    <Logger name="com.nimbly.business" level="info" additivity="false">
+                         <AppenderRef ref="AppenderBusiness" /> 
+                    </Logger>
+                    
+                    <Root level="error" >
+                         <AppenderRef ref="Console" /> 
+                         <AppenderRef ref="AppenderErrors" />
+                         <AppenderRef ref="AppenderDebug" /> 
+                         <AppenderRef ref="AppenderDebugWithSQL" /> 
+                    </Root>
+                </Loggers>
+            </Configuration>
+            """.trimIndent()
+
+        //
+        // Additivity is true (default)
+        //
+        initLog4J(config.replace("#ADDITIVITY#", "true"))
+
+        val logger1 = LogManager.getLogger("com.nimbly.test.Training")
+        val logger2 = LogManager.getLogger("com.apple.ios.IPhone")
+        val loggerBusiness = LogManager.getLogger("com.nimbly.business.BusinessRecorder")
+        val loggerHibernate = LogManager.getLogger("org.hibernate.SQL")
+
+        logger1.log(DEBUG, "Training debug")
+        logger1.log(ERROR, "Training error")
+
+        logger2.log(DEBUG, "Apple debug")
+        logger2.log(ERROR, "Apple error")
+
+        loggerBusiness.log(DEBUG, "A business debug")
+        loggerBusiness.log(INFO, "A business debug information")
+
+        loggerHibernate.log(INFO, "SELECT TOTO.NAME FROM TOTO WHERE ID == 'test'")
+
+        assertLogs("AppenderErrors",
+            "[ERROR] [com.nimbly.test.Training] Training error",
+            "[ERROR] [com.apple.ios.IPhone] Apple error")
+
+        assertLogs("AppenderDebug",
+            "[DEBUG] [com.nimbly.test.Training] Training debug",
+            "[ERROR] [com.nimbly.test.Training] Training error",
+            "[ERROR] [com.apple.ios.IPhone] Apple error")
+
+        assertLogs("AppenderDebugWithSQL",
+            "[DEBUG] [com.nimbly.test.Training] Training debug",
+            "[ERROR] [com.nimbly.test.Training] Training error",
+            "[ERROR] [com.apple.ios.IPhone] Apple error",
+            "[INFO] [org.hibernate.SQL] SELECT TOTO.NAME FROM TOTO WHERE ID == 'test'")
+
+        assertLogs("AppenderBusiness",
+            "[INFO] [com.nimbly.business.BusinessRecorder] A business debug information")
+    }
+
+//    + MDC : utilisation du logger le context
 }
