@@ -1,6 +1,7 @@
 package com.nimbly.training.log4j
 
 import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.ThreadContext
 import org.apache.logging.log4j.core.LoggerContext
 import org.apache.logging.log4j.core.config.ConfigurationSource
 import org.apache.logging.log4j.core.config.Configurator
@@ -20,6 +21,8 @@ abstract class AbstractTestLog4J {
 
         context = Configurator.initialize(null,
             ConfigurationSource(config.byteInputStream(Charsets.UTF_8)))
+
+        ThreadContext.clearAll()
     }
 
     protected fun assertLogs(appender: String,
@@ -30,7 +33,7 @@ abstract class AbstractTestLog4J {
         assertEquals(
             logs.asList().joinToString("\n"),
             testAppender.events
-                .map { "[${it.level}] [${it.logger}] ${it.message}"}
+                .map { it.toString().trim() }
                 .joinToString("\n"))
     }
 }

@@ -1,9 +1,6 @@
 package com.nimbly.training.log4j;
 
-import org.apache.logging.log4j.core.Appender;
-import org.apache.logging.log4j.core.Core;
-import org.apache.logging.log4j.core.Filter;
-import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.*;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
@@ -20,20 +17,21 @@ public class TestAppender extends AbstractAppender {
 
     private final List<Log> events = new ArrayList<>();
 
-    protected TestAppender(String name, Filter filter) {
-        super(name, filter, null);
+    protected TestAppender(String name, Filter filter, Layout layout) {
+        super(name, filter, layout);
     }
 
     @PluginFactory
     public static TestAppender createAppender(
             @PluginAttribute("name") String name,
-            @PluginElement("Filter") Filter filter) {
-        return new TestAppender(name, filter);
+            @PluginElement("Filter") Filter filter,
+            @PluginElement("Layout") Layout layout) {
+        return new TestAppender(name, filter, layout);
     }
 
     @Override
     public void append(LogEvent event) {
-        events.add(new Log(event.getLevel(), event.getLoggerName(), event.getMessage().getFormattedMessage()));
+        events.add(new Log(event, getLayout()));
     }
 
     public List<Log> getEvents() {

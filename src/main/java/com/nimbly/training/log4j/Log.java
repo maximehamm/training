@@ -1,7 +1,11 @@
 package com.nimbly.training.log4j;
 
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.util.ReadOnlyStringMap;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 public class Log {
@@ -9,11 +13,23 @@ public class Log {
     private final String logger;
     private final Level level;
     private final String message;
+    private final String formattedMessage;
+    private final ReadOnlyStringMap contextData;
 
-    public Log(Level level, String logger, String message) {
+    public Log(LogEvent event, Layout<? extends Serializable> layout) {
+        this(event.getLevel(),
+             event.getLoggerName(),
+             event.getMessage().getFormattedMessage(),
+             (layout != null) ? layout.toSerializable(event).toString().trim() : null,
+             event.getContextData());
+    }
+
+    public Log(Level level, String logger, String message, String formattedMessage, ReadOnlyStringMap contextData) {
         this.logger = logger;
         this.level = level;
         this.message = message;
+        this.formattedMessage = formattedMessage;
+        this.contextData = contextData;
     }
 
     public String getLogger() {
@@ -26,6 +42,10 @@ public class Log {
 
     public String getMessage() {
         return message;
+    }
+
+    public ReadOnlyStringMap getContextData() {
+        return contextData;
     }
 
     @Override
@@ -45,6 +65,12 @@ public class Log {
 
     @Override
     public String toString() {
-        return "[" + level + "] [" + logger + "] " + message;
+        if (formattedMessage!=null)
+            return formattedMessage;
+
+        String context = (contextData!=null && !contextData.isEmpty())
+                ? " {" + contextData.toString() + "}"
+                : "";
+        return "[" + level + "] [" + logger + "] " + message + context;
     }
 }

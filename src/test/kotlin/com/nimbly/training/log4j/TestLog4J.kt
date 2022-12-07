@@ -3,6 +3,7 @@ package com.nimbly.training.log4j
 import org.apache.logging.log4j.Level.*
 import org.apache.logging.log4j.LogManager
 import org.junit.jupiter.api.Test
+import org.apache.logging.log4j.ThreadContext;
 
 class TestLog4J: AbstractTestLog4J() {
 
@@ -14,9 +15,11 @@ class TestLog4J: AbstractTestLog4J() {
                 <Configuration name="ConfigTest">
                     <Appenders>
                         <Console name="Console" target="Console">
-                            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" />
+                            <PatternLayout pattern="[%p] [%c] %m%n" />
                         </Console>
-                        <TestAppender name="TestAppender"/>
+                        <TestAppender name="TestAppender">
+                             <PatternLayout pattern="[%p] [%c] %m%n" />
+                        </TestAppender>
                     </Appenders>
                     <Loggers>
                         <Root level="#ROOT#">
@@ -67,9 +70,11 @@ class TestLog4J: AbstractTestLog4J() {
             <Configuration name="ConfigTest">
                 <Appenders>
                     <Console name="Console" target="Console">
-                        <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" />
+                        <PatternLayout pattern="[%p] [%c] %m%n" />
                     </Console>
-                    <TestAppender name="TestAppender"/>
+                    <TestAppender name="TestAppender">
+                         <PatternLayout pattern="[%p] [%c] %m%n" />
+                    </TestAppender>
                 </Appenders>
                 <Loggers>
                     <Logger name="com.nimbly.test" level="warn">
@@ -111,14 +116,17 @@ class TestLog4J: AbstractTestLog4J() {
                 <Appenders>
                 
                     <Console name="Console" target="Console">
-                        <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" />
+                        <PatternLayout pattern="[%p] [%c] %m%n" />
                     </Console>
                     
                     <TestAppender name="AppenderErrors">
+                        <PatternLayout pattern="[%p] [%c] %m%n" />
                         <LevelRangeFilter minLevel="ERROR" maxLevel="ERROR"/>
                     </TestAppender>
                     
-                    <TestAppender name="AppenderDebug"/>
+                    <TestAppender name="AppenderDebug">
+                         <PatternLayout pattern="[%p] [%c] %m%n" />
+                    </TestAppender>
                     
                 </Appenders>
                 
@@ -168,16 +176,21 @@ class TestLog4J: AbstractTestLog4J() {
                 <Appenders>
                 
                     <Console name="Console" target="Console">
-                        <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" />
+                        <PatternLayout pattern="[%p] [%c] %m%n" />
                     </Console>
                     
                     <TestAppender name="AppenderErrors">
+                        <PatternLayout pattern="[%p] [%c] %m%n" />
                         <LevelRangeFilter minLevel="ERROR" maxLevel="ERROR"/>
                     </TestAppender>
                     
-                    <TestAppender name="AppenderDebug"/>
+                    <TestAppender name="AppenderDebug">
+                         <PatternLayout pattern="[%p] [%c] %m%n" />
+                    </TestAppender>
                     
-                    <TestAppender name="AppenderBusiness"/>
+                    <TestAppender name="AppenderBusiness">
+                         <PatternLayout pattern="[%p] [%c] %m%n" />
+                    </TestAppender>
                     
                 </Appenders>
                 
@@ -238,18 +251,25 @@ class TestLog4J: AbstractTestLog4J() {
                 <Appenders>
                 
                     <Console name="Console" target="Console">
-                        <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" />
+                        <PatternLayout pattern="[%p] [%c] %m%n" />
                     </Console>
                     
                     <TestAppender name="AppenderErrors">
+                        <PatternLayout pattern="[%p] [%c] %m%n" />
                         <LevelRangeFilter minLevel="ERROR" maxLevel="ERROR"/>
                     </TestAppender>
                     
-                    <TestAppender name="AppenderDebug"/>
+                    <TestAppender name="AppenderDebug">
+                         <PatternLayout pattern="[%p] [%c] %m%n" />
+                    </TestAppender>
                     
-                    <TestAppender name="AppenderDebugWithSQL"/>
+                    <TestAppender name="AppenderDebugWithSQL">
+                         <PatternLayout pattern="[%p] [%c] %m%n" />
+                    </TestAppender>
                    
-                    <TestAppender name="AppenderBusiness"/>
+                    <TestAppender name="AppenderBusiness">
+                         <PatternLayout pattern="[%p] [%c] %m%n" />
+                    </TestAppender>
                     
                 </Appenders>
                 
@@ -315,5 +335,49 @@ class TestLog4J: AbstractTestLog4J() {
             "[INFO] [com.nimbly.business.BusinessRecorder] A business debug information")
     }
 
-//    + MDC : utilisation du logger le context
+    @Test
+    fun test6UsingMDC() {
+
+        //language=XML
+        initLog4J("""
+            <Configuration name="ConfigTest">
+                <Appenders>
+                    <Console name="Console" target="Console">
+                        <PatternLayout pattern="[%p] [%c] %m%n" />
+                    </Console>
+                    <TestAppender name="TestAppender">
+                        <PatternLayout pattern="[%p] [%c] %m {ios=%X{ios}, login=%X{login}}%n" />
+                    </TestAppender>
+                </Appenders>
+                <Loggers>
+                    <Logger name="com.nimbly.test" level="warn">
+                    </Logger>
+                    <Root level="error">
+                         <AppenderRef ref="Console" /> 
+                         <AppenderRef ref="TestAppender" /> 
+                    </Root>
+                </Loggers>
+            </Configuration>
+            """.trimIndent()
+        )
+
+        val logger1 = LogManager.getLogger("com.nimbly.test.Training")
+        val logger2 = LogManager.getLogger("com.apple.ios.IPhone")
+
+        ThreadContext.put("login", "maxime.hamm@nimbly-consulting.com");
+        ThreadContext.put("ios", "15.2.1");
+
+        logger1.log(DEBUG, "Training debug")
+        logger1.log(WARN, "Training warning")
+        logger1.log(ERROR, "Training error")
+
+        logger2.log(DEBUG, "Apple debug")
+        logger2.log(ERROR, "Apple error")
+
+        assertLogs("TestAppender",
+            "[WARN] [com.nimbly.test.Training] Training warning {ios=15.2.1, login=maxime.hamm@nimbly-consulting.com}",
+            "[ERROR] [com.nimbly.test.Training] Training error {ios=15.2.1, login=maxime.hamm@nimbly-consulting.com}",
+            "[ERROR] [com.apple.ios.IPhone] Apple error {ios=15.2.1, login=maxime.hamm@nimbly-consulting.com}")
+    }
+
 }
