@@ -18,7 +18,7 @@ import java.util.List;
         elementType = Appender.ELEMENT_TYPE)
 public class TestAppender extends AbstractAppender {
 
-    private List<Log> events = new ArrayList<>();
+    private final List<Log> events = new ArrayList<>();
 
     protected TestAppender(String name, Filter filter) {
         super(name, filter, null);

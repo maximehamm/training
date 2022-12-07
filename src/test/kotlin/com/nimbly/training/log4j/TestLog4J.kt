@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 class TestLog4J: AbstractTestLog4J() {
 
     @Test
-    fun testSimple1() {
+    fun test1Basics() {
 
         //language=XML
         val config = """
@@ -60,7 +60,7 @@ class TestLog4J: AbstractTestLog4J() {
     }
 
     @Test
-    fun testSimple2() {
+    fun test2MoreLoggers() {
 
         //language=XML
         initLog4J("""
@@ -103,25 +103,33 @@ class TestLog4J: AbstractTestLog4J() {
     }
 
     @Test
-    fun testMultiAppender1() {
+    fun test3SeparatingErrors() {
 
         //language=XML
         val config = """
             <Configuration name="ConfigTest">
                 <Appenders>
+                
                     <Console name="Console" target="Console">
                         <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" />
                     </Console>
-                    <TestAppender name="TestAppender1"/>
-                    <TestAppender name="TestAppender2"/>
+                    
+                    <TestAppender name="AppenderErrors">
+                        <LevelRangeFilter minLevel="ERROR" maxLevel="ERROR"/>
+                    </TestAppender>
+                    
+                    <TestAppender name="AppenderDebug"/>
+                    
                 </Appenders>
+                
                 <Loggers>
-                    <Logger name="com.nimbly.test" level="debug" additivity="true">
-                        <AppenderRef ref="TestAppender2" /> 
-                    </Logger>
-                    <Root level="debug">
+                
+                    <Logger name="com.nimbly.test" level="debug"/>
+                    
+                    <Root level="error" >
                          <AppenderRef ref="Console" /> 
-                         <AppenderRef ref="TestAppender1" />
+                         <AppenderRef ref="AppenderErrors" />
+                         <AppenderRef ref="AppenderDebug" /> 
                     </Root>
                 </Loggers>
             </Configuration>
@@ -130,39 +138,95 @@ class TestLog4J: AbstractTestLog4J() {
         //
         // Additivity is true (default)
         //
-        initLog4J(config)
+        initLog4J(config.replace("#ADDITIVITY#", "true"))
 
-        var logger1 = LogManager.getLogger("com.nimbly.test.Training")
-        var logger2 = LogManager.getLogger("com.apple.ios.IPhone")
+        val logger1 = LogManager.getLogger("com.nimbly.test.Training")
+        val logger2 = LogManager.getLogger("com.apple.ios.IPhone")
 
         logger1.log(DEBUG, "Training debug")
-        logger2.log(DEBUG, "Apple debug")
+        logger1.log(ERROR, "Training error")
 
-        assertLogs("TestAppender1",
+        logger2.log(DEBUG, "Apple debug")
+        logger2.log(ERROR, "Apple error")
+
+        assertLogs("AppenderErrors",
+            "[ERROR] [com.nimbly.test.Training] Training error",
+            "[ERROR] [com.apple.ios.IPhone] Apple error")
+
+        assertLogs("AppenderDebug",
             "[DEBUG] [com.nimbly.test.Training] Training debug",
-            "[DEBUG] [com.apple.ios.IPhone] Apple debug")
+            "[ERROR] [com.nimbly.test.Training] Training error",
+            "[ERROR] [com.apple.ios.IPhone] Apple error")
+    }
 
-        assertLogs("TestAppender2",
-            "[DEBUG] [com.nimbly.test.Training] Training debug")
+    @Test
+    fun test4BusinessLogger() {
+
+        //language=XML
+        val config = """
+            <Configuration name="ConfigTest">
+                <Appenders>
+                
+                    <Console name="Console" target="Console">
+                        <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" />
+                    </Console>
+                    
+                    <TestAppender name="AppenderErrors">
+                        <LevelRangeFilter minLevel="ERROR" maxLevel="ERROR"/>
+                    </TestAppender>
+                    
+                    <TestAppender name="AppenderDebug"/>
+                    
+                    <TestAppender name="AppenderBusiness"/>
+                    
+                </Appenders>
+                
+                <Loggers>
+                
+                    <Logger name="com.nimbly.business" level="info" additivity="false">
+                         <AppenderRef ref="AppenderBusiness" /> 
+                    </Logger>
+                 
+                    <Logger name="com.nimbly.test" level="debug"/>
+                    
+                    <Root level="error" >
+                         <AppenderRef ref="Console" /> 
+                         <AppenderRef ref="AppenderErrors" />
+                         <AppenderRef ref="AppenderDebug" /> 
+                    </Root>
+                </Loggers>
+            </Configuration>
+            """.trimIndent()
 
         //
-        // Additivity is false
+        // Additivity is true (default)
         //
-        initLog4J(config.replace(
-            """<Logger name="com.nimbly.test" level="debug" additivity="true">""",
-            """<Logger name="com.nimbly.test" level="debug" additivity="false">"""))
+        initLog4J(config.replace("#ADDITIVITY#", "true"))
 
-        logger1 = LogManager.getLogger("com.nimbly.test.Training")
-        logger2 = LogManager.getLogger("com.apple.ios.IPhone")
+        val logger1 = LogManager.getLogger("com.nimbly.test.Training")
+        val logger2 = LogManager.getLogger("com.apple.ios.IPhone")
+        val loggerBusiness = LogManager.getLogger("com.nimbly.business.BusinessRecorder")
 
         logger1.log(DEBUG, "Training debug")
+        logger1.log(ERROR, "Training error")
+
         logger2.log(DEBUG, "Apple debug")
+        logger2.log(ERROR, "Apple error")
 
-        assertLogs("TestAppender1",
-            "[DEBUG] [com.apple.ios.IPhone] Apple debug")
+        loggerBusiness.log(DEBUG, "A business debug")
+        loggerBusiness.log(INFO, "A business debug information")
 
-        assertLogs("TestAppender2",
-            "[DEBUG] [com.nimbly.test.Training] Training debug")
+        assertLogs("AppenderErrors",
+            "[ERROR] [com.nimbly.test.Training] Training error",
+            "[ERROR] [com.apple.ios.IPhone] Apple error")
 
+        assertLogs("AppenderDebug",
+            "[DEBUG] [com.nimbly.test.Training] Training debug",
+            "[ERROR] [com.nimbly.test.Training] Training error",
+            "[ERROR] [com.apple.ios.IPhone] Apple error")
+
+        assertLogs("AppenderBusiness",
+            "[INFO] [com.nimbly.business.BusinessRecorder] A business debug information")
     }
+
 }
