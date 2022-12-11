@@ -1,22 +1,20 @@
 package com.nimbly.training.util;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbly.training.util.university.University;
+import com.nimbly.training.util.university.University2;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-@SuppressWarnings({"DataFlowIssue", "Java8MapApi"})
+@SuppressWarnings({"DataFlowIssue"})
 public class PerformanceTest {
 
     @Test
@@ -24,22 +22,18 @@ public class PerformanceTest {
 
         // Load universities
         byte[] jsonData = getClass().getClassLoader().getResourceAsStream("universities_worlwide.json").readAllBytes();
-        List<University> universities = new ObjectMapper().readValue(jsonData, new TypeReference<>() {
-        });
+        List<University> universities = Arrays.asList(new ObjectMapper().readValue(jsonData, University[].class));
 
         // Build map
         int i = 1;
         Map<String, List<University>> countriesMap = new HashMap<>();
         for (University university : universities) {
 
-            System.out.println((i++) + " " + university.name);
+            System.out.println((i++) + " " + university.getName());
 
             // Add to coutry map
-            List<University> countryUniversities = countriesMap.computeIfAbsent(university.country, k -> new ArrayList<>());
+            List<University> countryUniversities = countriesMap.computeIfAbsent(university.getCountry(), k -> new ArrayList<>());
             countryUniversities.add(university);
-
-            // Add flag
-            university.flag = getClass().getClassLoader().getResourceAsStream("images/flags/" + university.iso2.toLowerCase() + ".png").readAllBytes();
         }
 
         Assertions.assertEquals(9810, universities.size());
@@ -57,28 +51,18 @@ public class PerformanceTest {
 
         // Load universities
         byte[] jsonData = getClass().getClassLoader().getResourceAsStream("universities_worlwide.json").readAllBytes();
-        List<University> universities = new ObjectMapper().readValue(jsonData, new TypeReference<>() {
-        });
+        List<University2> universities = Arrays.asList(new ObjectMapper().readValue(jsonData, University2[].class));
 
         // Build map
         int i = 1;
-        Map<String, byte[]> flagCache = new HashMap<>();
-        Map<String, List<University>> countriesMap = new HashMap<>();
-        for (University university : universities) {
+        Map<String, List<University2>> countriesMap = new HashMap<>();
+        for (University2 university : universities) {
 
-            System.out.println((i++) + " " + university.name);
+            System.out.println((i++) + " " + university.getName());
 
             // Add to coutry map
-            List<University> countryUniversities = countriesMap.computeIfAbsent(university.country, k -> new ArrayList<>());
-            countryUniversities.add(university);
-
-            // Add flag
-            university.flag = flagCache.get(university.iso2.toLowerCase());
-            if (university.flag == null) {
-                university.flag = getClass().getClassLoader().getResourceAsStream("images/flags/" + university.iso2.toLowerCase() + ".png").readAllBytes();
-                flagCache.put(university.iso2.toLowerCase(), university.flag);
-            }
-        }
+            List<University2> countryUniversities = countriesMap.computeIfAbsent(university.getCountry(), k -> new ArrayList<>());
+            countryUniversities.add(university);        }
 
         Assertions.assertEquals(9810, universities.size());
         Assertions.assertEquals(204, countriesMap.size());
@@ -86,7 +70,7 @@ public class PerformanceTest {
         //
         // ANALYSING PERFOMANCES :
         //
-        //  - Loading Json takes a while !
+        //  - Parsing Json takes a while !
         //  --> Let's use a simple custom parsing...
     }
 
@@ -94,43 +78,36 @@ public class PerformanceTest {
     public void test3() throws IOException {
 
         // Load universities
-        List<University> universities = new ArrayList<>();
+        List<University2> universities = new ArrayList<>();
         InputStream resourceAsStream = getClass().getClassLoader().getResourceAsStream("universities_worlwide.json");
         BufferedReader reader = new BufferedReader(new InputStreamReader(resourceAsStream));
-        University un = null;
+        String unName = null;
         String line = reader.readLine();
         while (line != null) {
             String trim = line.trim();
             if (trim.startsWith("\"name")) {
-                un = new University();
-                un.name = trim.substring(9, trim.length() - 2);
-                universities.add(un);
+                unName = trim.substring(9, trim.length() - 2);
             }
             else if (trim.startsWith("\"alpha_two_code")) {
-                un.iso2 = trim.substring(19, trim.length() - 2);
+                String unIso2 = trim.substring(19, trim.length() - 2);
+                universities.add(new University2(unName, unIso2));
+                unName = null;
             }
+
             line = reader.readLine();
         }
         reader.close();
 
         // Build map
         int i = 1;
-        Map<String, byte[]> flagCache = new HashMap<>();
-        Map<String, List<University>> countriesMap = new HashMap<>();
-        for (University university : universities) {
+        Map<String, List<University2>> countriesMap = new HashMap<>();
+        for (University2 university : universities) {
 
-            System.out.println((i++) + " " + university.name);
+            System.out.println((i++) + " " + university.getName());
 
             // Add to coutry map
-            List<University> countryUniversities = countriesMap.computeIfAbsent(university.iso2, k -> new ArrayList<>());
+            List<University2> countryUniversities = countriesMap.computeIfAbsent(university.getIso2(), k -> new ArrayList<>());
             countryUniversities.add(university);
-
-            // Add flag
-            university.flag = flagCache.get(university.iso2.toLowerCase());
-            if (university.flag == null) {
-                university.flag = getClass().getClassLoader().getResourceAsStream("images/flags/" + university.iso2.toLowerCase() + ".png").readAllBytes();
-                flagCache.put(university.iso2.toLowerCase(), university.flag);
-            }
         }
 
         Assertions.assertEquals(9810, universities.size());
@@ -266,36 +243,8 @@ public class PerformanceTest {
         //  --> Let's say the method is optimized enough !
     }
 
-
-    @SuppressWarnings("unused")
-    static class University {
-        public String name;
-        public String country;
-        public String[] domains;
-
-        @JsonProperty("alpha_two_code")
-        public String iso2;
-        @JsonProperty("state-province")
-        public String stateProvince;
-        @JsonProperty("web_pages")
-        public String[] webPages;
-
-        public byte[] flag;
+    @BeforeEach
+    public void clean() {
+        University2.cleanCache();
     }
-    /*
-    {
-	    "alpha_two_code": "TR",
-	    "country": "Turkey",
-	    "state-province": null,
-	    "domains": [
-	        "sabanciuniv.edu",
-	        "sabanciuniv.edu.tr"
-	    ],
-	    "name": "Sabanci University",
-	    "web_pages": [
-	        "http://www.sabanciuniv.edu/",
-	        "http://www.sabanciuniv.edu.tr/"
-	    ],
-	},
-     */
 }
