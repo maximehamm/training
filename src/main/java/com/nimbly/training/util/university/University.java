@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.IOException;
 
+@SuppressWarnings("DataFlowIssue")
 public class University {
 
     private String name;
@@ -58,7 +59,9 @@ public class University {
     public void setIso2(String iso2) {
         this.iso2 = iso2;
         try {
-            this.flag = getClass().getClassLoader().getResourceAsStream("images/flags/" + iso2.toLowerCase() + ".png").readAllBytes();
+            this.flag = getClass().getClassLoader()
+                    .getResourceAsStream("images/flags/" + iso2.toLowerCase() + ".png")
+                    .readAllBytes();
         } catch (IOException e) {
             throw new RuntimeException("Flag not found", e);
         }
