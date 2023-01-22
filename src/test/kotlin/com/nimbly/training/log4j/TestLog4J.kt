@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Level.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.apache.logging.log4j.ThreadContext
+import org.apache.logging.log4j.message.SimpleMessage
 import org.junit.jupiter.api.Test
 import java.lang.Thread.sleep
 import kotlin.concurrent.thread
@@ -489,6 +490,61 @@ class TestLog4J: AbstractTestLog4J() {
             "[DEBUG] [com.nimbly.test.Training] Run - too long",
             "[WARN] [com.nimbly.test.Training] Processing TWO - END - Duration = XXX ms")
     }
+
+    /**
+     * Use case : do not evalate debug message if debug level does not need it
+     */
+    @Test
+    fun test9LoggerMessageLateInit() {
+
+        //language=XML
+        val config = """
+                <Configuration name="ConfigTest">
+                    <Appenders>
+                        <Console name="Console" target="Console">
+                            <PatternLayout pattern="[%p] [%c] %m%n" />
+                        </Console>
+                        <TestAppender name="TestAppender">
+                             <PatternLayout pattern="[%p] [%c] %m%n" />
+                        </TestAppender>
+                    </Appenders>
+                    <Loggers>
+                        <Root level="info">
+                             <AppenderRef ref="Console" /> 
+                             <AppenderRef ref="TestAppender" /> 
+                        </Root>
+                    </Loggers>
+                </Configuration>
+            """.trimIndent()
+
+        initLog4J(config)
+
+        val logger = LogManager.getLogger("com.nimbly.test.Training")
+
+        // Message is expected :
+        //   selected logger level (i.e. DEBUG) is equals or higher as config (i.e. INFO)
+        logger.log(INFO) {
+            SimpleMessage(buildMesage("First"));
+        }
+
+        // Message is NOT expected :
+        //   selected logger level (i.e. DEBUG) is lower as config (i.e. INFO)
+        logger.log(DEBUG) {
+            SimpleMessage(buildMesage("Second"));
+        }
+
+        assertLogs("TestAppender",
+            "[INFO] [com.nimbly.test.Training] Heavy message 'First' + generated")
+    }
+
+    private fun buildMesage(msg: String): String {
+        var logger = LogManager.getLogger("com.nimbly.test.Builder")
+
+        val string = "Heavy message '$msg' + generated"
+        logger.debug(string)
+        return string
+    }
+
 }
 
 fun dosomething(count: Int): Int {

@@ -11,7 +11,7 @@ import java.util.function.Supplier;
 
 import static com.nimbly.training.log4j.TestLog4JKt.dosomething;
 
-public class TestLog4J extends AbstractTestLog4J {
+public class TestJavaLog4J extends AbstractTestLog4J {
 
     /**
      * Use case : Logging elapsed time
