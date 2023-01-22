@@ -13,6 +13,9 @@ import static com.nimbly.training.log4j.TestLog4JKt.dosomething;
 
 public class TestLog4J extends AbstractTestLog4J {
 
+    /**
+     * Use case : Logging elapsed time
+     */
     @Test
     public void test7ElapsedTimeJava() {
 
@@ -56,7 +59,7 @@ public class TestLog4J extends AbstractTestLog4J {
                 "[DEBUG] [com.nimbly.test.Training] Value is 3",
                 "[DEBUG] [com.nimbly.test.Training] Value is 4",
                 "[DEBUG] [com.nimbly.test.Training] Value is 5",
-                "[DEBUG] [com.nimbly.test.Training] Processing my stuff - END - Duration = 999 ms",
+                "[DEBUG] [com.nimbly.test.Training] Processing my stuff - END - Duration = XXX ms",
                 "[INFO] [com.nimbly.test.Training] Result is 5");
 
     }

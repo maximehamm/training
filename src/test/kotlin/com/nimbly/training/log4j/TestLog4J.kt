@@ -183,8 +183,7 @@ class TestLog4J: AbstractTestLog4J() {
     }
 
     /**
-     * Use case :
-     *  Having a file only for specific logger(s)
+     * Use case : Having a file only for specific logger(s)
      */
     @Test
     fun test4AndBusinessLogger() {
@@ -332,8 +331,7 @@ class TestLog4J: AbstractTestLog4J() {
     }
 
     /**
-     * Use case :
-     *   Adding information on all logs, for example the user login
+     * Use case : Adding information on all logs, for example the user login
      */
     @Test
     fun test6UsingMDC() {
@@ -400,7 +398,7 @@ class TestLog4J: AbstractTestLog4J() {
     }
 
     /**
-     * @TODO Explain
+     * Use case : Logging elapsed time
      */
     @Test
     fun test7ElapsedTime() {
@@ -440,8 +438,56 @@ class TestLog4J: AbstractTestLog4J() {
             "[DEBUG] [com.nimbly.test.Training] Value is 3",
             "[DEBUG] [com.nimbly.test.Training] Value is 4",
             "[DEBUG] [com.nimbly.test.Training] Value is 5",
-            "[DEBUG] [com.nimbly.test.Training] Processing my stuff - END - Duration = 999 ms",
+            "[DEBUG] [com.nimbly.test.Training] Processing my stuff - END - Duration = XXX ms",
             "[INFO] [com.nimbly.test.Training] Result is 5")
+    }
+
+    /**
+     * Use case : Logging elapsed time and warn if time exceed some limit
+     */
+    @Test
+    fun test8ElapsedTimeAndWarn() {
+
+        //language=XML
+        initLog4J("""
+            <Configuration name="ConfigTest">
+                <Appenders>
+                    <Console name="Console" target="Console">
+                        <PatternLayout pattern="[%p] [%c] %m%n" />
+                    </Console>
+                    <TestAppender name="TestAppender">
+                         <PatternLayout pattern="[%p] [%c] %m%n" />
+                    </TestAppender>
+                </Appenders>
+                <Loggers>
+                    <Root level="debug">
+                         <AppenderRef ref="Console" /> 
+                         <AppenderRef ref="TestAppender" /> 
+                    </Root>
+                </Loggers>
+            </Configuration>
+            """.trimIndent()
+        )
+
+        val logger = LogManager.getLogger("com.nimbly.test.Training")
+
+        elapsed(logger, DEBUG, "Processing ONE", warnlimit = 200) {
+            logger.debug("Run - speed")
+            sleep(50)
+        }
+
+        elapsed(logger, DEBUG, "Processing TWO", warnlimit = 200) {
+            logger.debug("Run - too long")
+            sleep(250)
+        }
+
+        assertLogs("TestAppender",
+            "[DEBUG] [com.nimbly.test.Training] Processing ONE - START",
+            "[DEBUG] [com.nimbly.test.Training] Run - speed",
+            "[DEBUG] [com.nimbly.test.Training] Processing ONE - END - Duration = XXX ms",
+            "[DEBUG] [com.nimbly.test.Training] Processing TWO - START",
+            "[DEBUG] [com.nimbly.test.Training] Run - too long",
+            "[WARN] [com.nimbly.test.Training] Processing TWO - END - Duration = XXX ms")
     }
 }
 
@@ -456,13 +502,24 @@ fun dosomething(count: Int): Int {
     return i;
 }
 
-fun <T> elapsed(logger: Logger, level: Level, message: String, function: () -> T): T {
+fun <T> elapsed(
+    logger: Logger,
+    level: Level,
+    message: String,
+    warnlimit: Long? = null,
+    function: () -> T
+): T {
     logger.log(level, "$message - START")
 
     val start = System.currentTimeMillis()
     val r = function.invoke()
     val end = System.currentTimeMillis()
+    val elapsed = end - start
 
-    logger.log(level, "$message - END - Duration = " + (end - start) + " ms")
+    var l = level
+    if (warnlimit != null && elapsed > warnlimit &&  l.intLevel() > WARN.intLevel()) {
+        l = WARN
+    }
+    logger.log(l, "$message - END - Duration = $elapsed ms")
     return r
 }
