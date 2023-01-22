@@ -33,7 +33,7 @@ abstract class AbstractTestLog4J {
         assertEquals(
             logs.asList().joinToString("\n"),
             testAppender.events
-                .map { it.toString().trim() }
+                .map { it.toString().trim().replace(Regex("Duration = (\\d+) ms\$"), "Duration = 999 ms") }
                 .joinToString("\n"))
     }
 }

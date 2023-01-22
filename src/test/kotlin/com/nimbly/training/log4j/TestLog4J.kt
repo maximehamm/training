@@ -1,13 +1,12 @@
 package com.nimbly.training.log4j
 
+import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.Level.*
 import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 import org.apache.logging.log4j.ThreadContext
 import org.junit.jupiter.api.Test
 import java.lang.Thread.sleep
-import java.util.concurrent.Callable
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 class TestLog4J: AbstractTestLog4J() {
@@ -400,4 +399,70 @@ class TestLog4J: AbstractTestLog4J() {
         )
     }
 
+    /**
+     * @TODO Explain
+     */
+    @Test
+    fun test7ElapsedTime() {
+
+        //language=XML
+        initLog4J("""
+            <Configuration name="ConfigTest">
+                <Appenders>
+                    <Console name="Console" target="Console">
+                        <PatternLayout pattern="[%p] [%c] %m%n" />
+                    </Console>
+                    <TestAppender name="TestAppender">
+                         <PatternLayout pattern="[%p] [%c] %m%n" />
+                    </TestAppender>
+                </Appenders>
+                <Loggers>
+                    <Root level="debug">
+                         <AppenderRef ref="Console" /> 
+                         <AppenderRef ref="TestAppender" /> 
+                    </Root>
+                </Loggers>
+            </Configuration>
+            """.trimIndent()
+        )
+
+        val logger = LogManager.getLogger("com.nimbly.test.Training")
+
+        val result = elapsed(logger, DEBUG, "Processing my stuff") {
+            dosomething(5)
+        }
+        logger.info("Result is $result")
+
+        assertLogs("TestAppender",
+            "[DEBUG] [com.nimbly.test.Training] Processing my stuff - START",
+            "[DEBUG] [com.nimbly.test.Training] Value is 1",
+            "[DEBUG] [com.nimbly.test.Training] Value is 2",
+            "[DEBUG] [com.nimbly.test.Training] Value is 3",
+            "[DEBUG] [com.nimbly.test.Training] Value is 4",
+            "[DEBUG] [com.nimbly.test.Training] Value is 5",
+            "[DEBUG] [com.nimbly.test.Training] Processing my stuff - END - Duration = 999 ms",
+            "[INFO] [com.nimbly.test.Training] Result is 5")
+    }
+}
+
+fun dosomething(count: Int): Int {
+    val logger = LogManager.getLogger("com.nimbly.test.Training")
+    var i = 0;
+    repeat(count) {
+        i++
+        logger.debug("Value is $i")
+        sleep(100)
+    }
+    return i;
+}
+
+fun <T> elapsed(logger: Logger, level: Level, message: String, function: () -> T): T {
+    logger.log(level, "$message - START")
+
+    val start = System.currentTimeMillis()
+    val r = function.invoke()
+    val end = System.currentTimeMillis()
+
+    logger.log(level, "$message - END - Duration = " + (end - start) + " ms")
+    return r
 }
