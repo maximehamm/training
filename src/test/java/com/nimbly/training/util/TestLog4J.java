@@ -36,7 +36,13 @@ public class TestLog4J extends AbstractTestLog4J {
 
         Logger logger = LogManager.getLogger("com.nimbly.test.Training");
 
-        int result = elapsed2(logger, Level.DEBUG, "Processing my stuff", () -> {
+        // Simple wihout without return value
+        // elapsed(logger, Level.DEBUG, "Processing without returning anything", () -> {
+        //     System.out.println("Test !");
+        // });
+
+        // With returned value
+        int result = elapsed(logger, Level.DEBUG, "Processing my stuff", () -> {
                 // the code to monitor
                 return dosomething(5);
             }
@@ -55,10 +61,10 @@ public class TestLog4J extends AbstractTestLog4J {
 
     }
 
-    public <T> T elapsed2(@NotNull Logger logger,
-                          @NotNull Level level,
-                          @NotNull String message,
-                          @NotNull Supplier<T> function) {
+    public <T> T elapsed(@NotNull Logger logger,
+                         @NotNull Level level,
+                         @NotNull String message,
+                         @NotNull Supplier<T> function) {
 
         logger.log(level, message + " - START");
 
@@ -69,4 +75,21 @@ public class TestLog4J extends AbstractTestLog4J {
         logger.log(level, message + " - END - Duration = " + (end - start) + " ms");
         return r;
     }
+
+    public void elapsed(@NotNull Logger logger,
+                        @NotNull Level level,
+                        @NotNull String message,
+                        @NotNull Callback function) {
+
+        elapsed(logger, level, message, () -> {
+            function.invoke();
+            return null;
+        });
+    }
+
+    public interface Callback {
+        void invoke();
+    }
+
 }
+
