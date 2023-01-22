@@ -2,8 +2,11 @@ package com.nimbly.training.log4j
 
 import org.apache.logging.log4j.Level.*
 import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.ThreadContext
 import org.junit.jupiter.api.Test
-import org.apache.logging.log4j.ThreadContext;
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class TestLog4J: AbstractTestLog4J() {
 
@@ -330,7 +333,6 @@ class TestLog4J: AbstractTestLog4J() {
     /**
      * Use case :
      *   Adding information on all logs, for example the user login
-     *   @TODO Une coroutine !
      */
     @Test
     fun test6UsingMDC() {
@@ -340,16 +342,14 @@ class TestLog4J: AbstractTestLog4J() {
             <Configuration name="ConfigTest">
                 <Appenders>
                     <Console name="Console" target="Console">
-                        <PatternLayout pattern="[%p] [%c] %m%n" />
+                        <PatternLayout pattern="[%p] [%c] [%X{userId}] %m {email=%X{email}}%n" />
                     </Console>
                     <TestAppender name="TestAppender">
-                        <PatternLayout pattern="[%p] [%c] %m {ios=%X{ios}, login=%X{login}}%n" />
+                        <PatternLayout pattern="[%p] [%c] [%X{userId}] %m {email=%X{email}}%n" />
                     </TestAppender>
                 </Appenders>
                 <Loggers>
-                    <Logger name="com.nimbly.test" level="warn">
-                    </Logger>
-                    <Root level="error">
+                    <Root level="debug">
                          <AppenderRef ref="Console" /> 
                          <AppenderRef ref="TestAppender" /> 
                     </Root>
@@ -358,23 +358,43 @@ class TestLog4J: AbstractTestLog4J() {
             """.trimIndent()
         )
 
-        val logger1 = LogManager.getLogger("com.nimbly.test.Training")
-        val logger2 = LogManager.getLogger("com.apple.ios.IPhone")
+        val logger = LogManager.getLogger("com.nimbly.test.Training")
 
-        ThreadContext.put("login", "maxime.hamm@nimbly-consulting.com");
-        ThreadContext.put("ios", "15.2.1");
+        class Job(val userId: String, val email: String, vararg val sleep: Long) : Callable<Any?> {
+            override fun call(): Any? {
 
-        logger1.log(DEBUG, "Training debug")
-        logger1.log(WARN, "Training warning")
-        logger1.log(ERROR, "Training error")
 
-        logger2.log(DEBUG, "Apple debug")
-        logger2.log(ERROR, "Apple error")
+                Thread.sleep(sleep[0])
+                logger.log(DEBUG, "Logging...")
+
+                ThreadContext.put("email", email);
+                ThreadContext.put("userId", userId)
+
+                Thread.sleep(sleep[1])
+                logger.log(DEBUG, "A first log")
+
+                Thread.sleep(sleep[2])
+                logger.log(ERROR, "A log with error")
+
+                return null
+            }
+        }
+
+
+        val service = Executors.newFixedThreadPool(2)
+        service.submit<Any>(Job("Nimbly", "maxime.hamm@nimbly-consulting.com", 10, 10, 200))
+        service.submit<Any>(Job("Apple", "steve@apple.com", 110, 0, 0))
+        service.shutdown()
+        service.awaitTermination(2, TimeUnit.SECONDS)
 
         assertLogs("TestAppender",
-            "[WARN] [com.nimbly.test.Training] Training warning {ios=15.2.1, login=maxime.hamm@nimbly-consulting.com}",
-            "[ERROR] [com.nimbly.test.Training] Training error {ios=15.2.1, login=maxime.hamm@nimbly-consulting.com}",
-            "[ERROR] [com.apple.ios.IPhone] Apple error {ios=15.2.1, login=maxime.hamm@nimbly-consulting.com}")
+            "[DEBUG] [com.nimbly.test.Training] [] Logging... {email=}",
+            "[DEBUG] [com.nimbly.test.Training] [Nimbly] A first log {email=maxime.hamm@nimbly-consulting.com}",
+            "[DEBUG] [com.nimbly.test.Training] [] Logging... {email=}",
+            "[DEBUG] [com.nimbly.test.Training] [Apple] A first log {email=steve@apple.com}",
+            "[ERROR] [com.nimbly.test.Training] [Apple] A log with error {email=steve@apple.com}",
+            "[ERROR] [com.nimbly.test.Training] [Nimbly] A log with error {email=maxime.hamm@nimbly-consulting.com}"
+        )
     }
 
 }
