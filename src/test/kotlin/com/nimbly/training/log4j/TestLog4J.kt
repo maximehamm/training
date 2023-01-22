@@ -4,9 +4,11 @@ import org.apache.logging.log4j.Level.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.ThreadContext
 import org.junit.jupiter.api.Test
+import java.lang.Thread.sleep
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 
 class TestLog4J: AbstractTestLog4J() {
 
@@ -360,32 +362,33 @@ class TestLog4J: AbstractTestLog4J() {
 
         val logger = LogManager.getLogger("com.nimbly.test.Training")
 
-        class Job(val userId: String, val email: String, vararg val sleep: Long) : Callable<Any?> {
-            override fun call(): Any? {
+        thread {
 
+            logger.log(DEBUG, "Logging...")
 
-                Thread.sleep(sleep[0])
-                logger.log(DEBUG, "Logging...")
+            ThreadContext.put("email", "maxime.hamm@nimbly-consulting.com");
+            ThreadContext.put("userId", "Nimbly")
 
-                ThreadContext.put("email", email);
-                ThreadContext.put("userId", userId)
+            logger.log(DEBUG, "A first log")
 
-                Thread.sleep(sleep[1])
-                logger.log(DEBUG, "A first log")
-
-                Thread.sleep(sleep[2])
-                logger.log(ERROR, "A log with error")
-
-                return null
-            }
+            sleep(200)
+            logger.log(ERROR, "A log with error")
         }
 
+        thread {
 
-        val service = Executors.newFixedThreadPool(2)
-        service.submit<Any>(Job("Nimbly", "maxime.hamm@nimbly-consulting.com", 10, 10, 200))
-        service.submit<Any>(Job("Apple", "steve@apple.com", 110, 0, 0))
-        service.shutdown()
-        service.awaitTermination(2, TimeUnit.SECONDS)
+            sleep(110)
+            logger.log(DEBUG, "Logging...")
+
+            ThreadContext.put("email", "steve@apple.com");
+            ThreadContext.put("userId", "Apple")
+
+            logger.log(DEBUG, "A first log")
+
+            logger.log(ERROR, "A log with error")
+        }
+
+        sleep(300)
 
         assertLogs("TestAppender",
             "[DEBUG] [com.nimbly.test.Training] [] Logging... {email=}",
