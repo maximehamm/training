@@ -96,33 +96,40 @@ class TestOptimisticLocks {
     @Test
     fun insert3OptimisticsLock() {
 
+        class OptimistLockException : Exception()
+
         suspend fun increaseInvoice(who: String, invoiceId: String, addAmount: Double, delay1: Long, delay2: Long) {
 
-            delay(delay1)
-            val amount = getInvoiceAmout(invoiceId)
-            val version = getInvoiceVersion(invoiceId)
-            println("# $who Starts connection : amount = $amount, version = $version")
-            delay(delay2)
+            var con: Connection? = null
+            try {
 
-            val newAmount = amount + addAmount
-            println("# $who Sets amount to $newAmount")
-            val con = startConnection(autoCommit = false)
-            val rows = con.createStatement().executeUpdate("""
-                UPDATE Invoice
-                SET amount = $newAmount, version = version + 1
-                WHERE id = '$invoiceId'
-                AND version = $version
-                """)
+                delay(delay1)
+                val amount = getInvoiceAmout(invoiceId)
+                val version = getInvoiceVersion(invoiceId)
+                println("# $who Starts connection : amount = $amount, version = $version")
+                delay(delay2)
 
-            if (rows == 0) {
-                println("# $who LOSTS !!!")
-                con.rollback()
-                println("# $who Rollback OK")
-                return
+                val newAmount = amount + addAmount
+                println("# $who Sets amount to $newAmount")
+                con = startConnection(autoCommit = false)
+                val rows = con.createStatement().executeUpdate("""
+                        UPDATE Invoice
+                        SET amount = $newAmount, version = version + 1
+                        WHERE id = '$invoiceId'
+                        AND version = $version
+                        """)
+
+                if (rows == 0)
+                    throw OptimistLockException()
+
+                con.commit()
+                println("# $who Commit OK")
             }
-
-            con.commit()
-            println("# $who Commit OK")
+            catch (e: OptimistLockException) {
+                con?.rollback()
+                println("# $who Rollback done")
+                println("# $who LOSTS !!!")
+            }
         }
 
         assertInvoiceAmount("F001", 1000.0)
